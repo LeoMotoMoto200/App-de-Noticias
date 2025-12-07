@@ -65,25 +65,6 @@ Una aplicación web moderna de lectura de noticias con **gestos táctiles natura
 - 🏷️ Badges para noticias premium
 - 📰 Información de autor mejorada
 
-## 📂 Estructura del Proyecto
-
-```
-newshub-interactive/
-├── PrototipoFuncional/
-│   ├── index.html          # App principal (HTML + CSS + JS)
-│   └── ...
-├── README.md              # Este archivo
-└── .gitignore            # Archivos a ignorar en git
-```
-
-## 🚀 Cómo Usar
-
-1. **Clonar el repositorio:**
-   ```bash
-   git clone https://github.com/tu-usuario/newshub-interactive.git
-   cd newshub-interactive
-   ```
-
 2. **Abrir la aplicación:**
    - Navegador: Abre `PrototipoFuncional/index.html`
    - Live Server (VS Code): Click derecho → "Open with Live Server"
@@ -128,28 +109,6 @@ newshub-interactive/
 - **Animación:** slideUpSnackbar (300ms)
 - **Acción:** Deshacer disponible según contexto
 
-## 🔧 Configuración de Desarrollo
-
-```bash
-# Inicializar git
-git init
-
-# Configurar usuario
-git config user.name "Tu Nombre"
-git config user.email "tu@email.com"
-
-# Agregar archivos
-git add .
-
-# Primer commit
-git commit -m "Initial commit: NewsHub interactive news app"
-
-# Conectar con GitHub
-git remote add origin https://github.com/tu-usuario/newshub-interactive.git
-git branch -M main
-git push -u origin main
-```
-
 ## 📱 Compatibilidad
 
 - ✅ Chrome/Edge (90+)
@@ -168,10 +127,6 @@ Este proyecto fue desarrollado como parte del curso **"Interacción Humano Compu
 - Diseño responsive y accessible
 - Micro-interacciones modernas
 - Mejores prácticas en UX/UI
-
-## 📄 Licencia
-
-MIT License - Libre para usar, modificar y distribuir
 
 ## 👤 Autor
 
