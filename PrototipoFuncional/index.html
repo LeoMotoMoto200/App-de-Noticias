@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="App de noticias con gestos interactivos modernos">
+    <title>NewsHub - App de Noticias Premium</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1976D2;
+            --primary-dark: #1565C0;
+            --secondary: #00BCD4;
+            --accent: #FF6B6B;
+            --success: #4CAF50;
+            --warning: #FFA726;
+            --surface: #F5F5F5;
+            --surface-dark: #1E1E1E;
+            --text-primary: #212121;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --border: #E0E0E0;
+            --border-dark: #383838;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.12);
+            --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--surface);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #121212;
+                color: #F5F5F5;
+            }
+
+            .app-container {
+                background: var(--surface-dark);
+            }
+
+            .news-item {
+                background: #2A2A2A;
+                border-color: var(--border-dark);
+            }
+
+            .news-title {
+                color: #F5F5F5;
+            }
+
+            .news-desc {
+                color: #BDBDBD;
+            }
+
+            .category-tab {
+                background: rgba(255, 255, 255, 0.1);
+                border-color: rgba(255, 255, 255, 0.2);
+            }
+
+            .category-tab.active {
+                background: #333333;
+                color: var(--secondary);
+                border-color: var(--secondary);
+            }
+
+            .skeleton-image,
+            .skeleton-title,
+            .skeleton-text {
+                background: linear-gradient(90deg, #333333 25%, #444444 50%, #333333 75%);
+            }
+
+            .featured-card {
+                background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+            }
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .app-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            overflow-x: hidden;
+            touch-action: pan-y;
+        }
+
+        /* ═══════════════════════════════ PULL-TO-REFRESH ═══════════════════════════════ */
+        .pull-to-refresh {
+            position: relative;
+        }
+
+        .refresh-trigger {
+            height: 0;
+            overflow: visible;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin-top: 0;
+            transition: margin-top 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            padding: 12px 0;
+            background: linear-gradient(to bottom, rgba(25, 118, 210, 0.05), transparent);
+        }
+
+        .refresh-trigger.active {
+            margin-top: 80px;
+        }
+
+        .refresh-icon {
+            font-size: 32px;
+            width: auto;
+            height: auto;
+            color: var(--primary);
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-icon.rotating {
+            animation: spin-smooth 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            opacity: 1;
+        }
+
+        @keyframes spin-smooth {
+            from { 
+                transform: rotate(0deg) scale(1);
+            }
+            50% { 
+                transform: rotate(180deg) scale(1.15);
+            }
+            to { 
+                transform: rotate(360deg) scale(1);
+            }
+        }
+
+        .refresh-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            text-align: center;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        /* ═══════════════════════════════ HEADER Y NAVEGACIÓN ═══════════════════════════════ */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .categories-scroll {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .categories-scroll::-webkit-scrollbar {
+            height: 3px;
+        }
+
+        .categories-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .categories-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+        }
+
+        .category-tab {
+            padding: 10px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .category-tab::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            pointer-events: none;
+        }
+
+        .category-tab:active::after {
+            animation: ripple 0.6s ease-out;
+        }
+
+        @keyframes ripple {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+        }
+
+        .category-tab:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .category-tab.active {
+            background: white;
+            color: var(--primary);
+            border-color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .category-tab:focus-visible {
+            outline: 2px solid rgba(255, 255, 255, 0.8);
+            outline-offset: 2px;
+        }
+
+        /* ═══════════════════════════════ FEATURED SECTION ═══════════════════════════════ */
+        .featured-section {
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .featured-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            color: white;
+            padding: 24px;
+            position: relative;
+            box-shadow: var(--shadow-lg);
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .featured-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 6px 12px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .featured-card h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            line-height: 1.35;
+        }
+
+        .featured-card p {
+            font-size: 14px;
+            line-height: 1.6;
+            opacity: 0.95;
+            margin-bottom: 14px;
+        }
+
+        .featured-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .featured-source {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .featured-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        /* ═══════════════════════════════ SKELETON SCREENS ═══════════════════════════════ */
+        .skeleton-container {
+            padding: 12px;
+            opacity: 0;
+            animation: fadeInSkeleton 0.3s ease forwards;
+        }
+
+        @keyframes fadeInSkeleton {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .skeleton-item {
+            margin-bottom: 12px;
+            padding: 14px;
+            background: white;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            animation: skeleton-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .skeleton-image {
+            height: 150px;
+            background: linear-gradient(90deg, var(--surface) 25%, #EEEEEE 50%, var(--surface) 75%);
+            background-size: 200% 100%;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+            animation: skeleton-loading 1.5s infinite;
+        }
+
+        .skeleton-title {
+            height: 18px;
+            background: linear-gradient(90deg, var(--surface) 25%, #EEEEEE 50%, var(--surface) 75%);
+            background-size: 200% 100%;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            animation: skeleton-loading 1.5s infinite;
+        }
+
+        .skeleton-text {
+            height: 14px;
+            background: linear-gradient(90deg, var(--surface) 25%, #EEEEEE 50%, var(--surface) 75%);
+            background-size: 200% 100%;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            animation: skeleton-loading 1.5s infinite;
+        }
+
+        .skeleton-text:last-child {
+            margin-bottom: 0;
+            width: 70%;
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ═══════════════════════════════ CONTENIDO DE NOTICIAS ═══════════════════════════════ */
+        .content-area {
+            padding: 0;
+            position: relative;
+            overflow-x: hidden;
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+            padding-bottom: 80px;
+        }
+
+        .content-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .content-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .content-area::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .content-area::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+
+        .news-container {
+            display: flex;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: translateX(0);
+        }
+
+        .news-section {
+            min-width: 100%;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .news-item {
+            background: white;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: pointer;
+            position: relative;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            animation: slideInUp 0.4s ease-out backwards;
+        }
+
+        .news-item:nth-child(1) { animation-delay: 0.05s; }
+        .news-item:nth-child(2) { animation-delay: 0.1s; }
+        .news-item:nth-child(3) { animation-delay: 0.15s; }
+        .news-item:nth-child(n+4) { animation-delay: 0.2s; }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .news-item:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-4px);
+        }
+
+        .news-item:active {
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.98);
+        }
+
+        .news-image {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 56px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .news-image.loading {
+            animation: pulse-bg 2s infinite;
+        }
+
+        @keyframes pulse-bg {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.05); }
+        }
+
+        .news-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .news-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .news-category {
+            font-size: 11px;
+            color: var(--primary);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .news-badge {
+            font-size: 10px;
+            background: var(--accent);
+            color: white;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .news-title {
+            font-weight: 700;
+            font-size: 17px;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            line-height: 1.35;
+        }
+
+        .news-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            flex: 1;
+        }
+
+        .news-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            gap: 8px;
+        }
+
+        .news-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            flex: 1;
+        }
+
+        .source-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+
+        .source-name {
+            font-weight: 600;
+        }
+
+        .news-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            background: var(--surface);
+        }
+
+        .action-btn:active {
+            transform: scale(0.85);
+        }
+
+        .action-btn:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* ═══════════════════════════════ SNACKBAR ═══════════════════════════════ */
+        .snackbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #323232;
+            color: white;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .snackbar.show {
+            animation: slideUpSnackbar 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes slideUpSnackbar {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .snackbar-text {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .snackbar-action {
+            background: none;
+            border: none;
+            color: var(--success);
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 12px;
+            margin-left: 16px;
+            padding: 6px 0;
+            transition: opacity 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .snackbar-action:active {
+            opacity: 0.7;
+        }
+
+        .snackbar-action:focus-visible {
+            outline: 2px solid var(--success);
+            outline-offset: 2px;
+        }
+
+        /* ═══════════════════════════════ INDICADOR DE SWIPE ═══════════════════════════════ */
+        .swipe-hint {
+            position: absolute;
+            top: 50%;
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            left: 12px;
+            right: auto;
+            transform: translateY(-50%);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            animation: pulse-hint 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            background: rgba(25, 118, 210, 0.05);
+        }
+
+        .swipe-hint.show {
+            display: flex;
+        }
+
+        @keyframes pulse-hint {
+            0%, 100% { 
+                transform: translateY(-50%) scale(1);
+                opacity: 0.6;
+            }
+            50% { 
+                transform: translateY(-50%) scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        .swipe-hint::before {
+            content: '›';
+            font-size: 24px;
+            color: var(--primary);
+            font-weight: 700;
+            animation: swipe-arrow 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes swipe-arrow {
+            0%, 100% { transform: translateX(-4px); }
+            50% { transform: translateX(6px); }
+        }
+
+        /* ═══════════════════════════════ ACCESSIBILITY ═══════════════════════════════ */
+        .skip-link {
+            position: absolute;
+            left: -10000px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: auto;
+            height: auto;
+            background: var(--primary);
+            color: white;
+            padding: 12px 16px;
+            z-index: 10000;
+            border-radius: 0 0 8px 0;
+        }
+
+        /* Reduced Motion Support */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .news-item:hover {
+                transform: none;
+            }
+
+            .swipe-hint {
+                animation: none;
+            }
+        }
+
+        /* Success animation */
+        @keyframes success-checkmark {
+            0% { 
+                transform: scale(0) rotate(-45deg);
+                opacity: 0;
+            }
+            50% { 
+                transform: scale(1.15);
+            }
+            100% { 
+                transform: scale(1) rotate(0);
+                opacity: 1;
+            }
+        }
+
+        /* ═══════════════════════════════ RESPONSIVO ═══════════════════════════════ */
+        @media (max-width: 480px) {
+            .app-container {
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .header-title {
+                font-size: 22px;
+            }
+
+            .news-title {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Ir al contenido principal</a>
+
+<div class="app-container" id="appContainer">
+    <div class="pull-to-refresh">
+        <div class="refresh-trigger" id="refreshTrigger">
+            <div>
+                <div class="refresh-icon" id="refreshIcon">↻</div>
+                <div class="refresh-text" id="refreshText">Desliza hacia abajo para actualizar</div>
+            </div>
+        </div>
+
+        <div class="header">
+            <div class="header-title">📰 NewsHub</div>
+            <div class="categories-scroll">
+                <button class="category-tab active" data-category="all" role="tab" aria-selected="true">Todas</button>
+                <button class="category-tab" data-category="deportes" role="tab">⚽ Deportes</button>
+                <button class="category-tab" data-category="politica" role="tab">🏛️ Política</button>
+                <button class="category-tab" data-category="tecnologia" role="tab">💻 Tecnología</button>
+                <button class="category-tab" data-category="salud" role="tab">🏥 Salud</button>
+            </div>
+        </div>
+
+        <div class="featured-section" id="featuredSection">
+            <!-- Se genera dinámicamente -->
+        </div>
+
+        <div class="content-area" id="contentArea">
+            <div class="news-container" id="newsContainer">
+                <!-- Las secciones se generan dinámicamente -->
+            </div>
+        </div>
+
+        <div class="swipe-hint" id="swipeHint"></div>
+    </div>
+</div>
+
+<div class="snackbar" id="snackbar">
+    <div class="snackbar-text" id="snackbarText"></div>
+    <button class="snackbar-action" id="snackbarAction" aria-label="Deshacer acción">Deshacer</button>
+</div>
+
+<script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DATOS DE NOTICIAS POR CATEGORÍA
+    // ═══════════════════════════════════════════════════════════════════════════
+    const newsData = {
+        deportes: [
+            { 
+                emoji: '⚽', 
+                title: 'Real Madrid vence 3-2 en clásico emocionante', 
+                desc: 'Gol de Mbappé en los 90 minutos define el partido. Una actuación histórica en el Bernabéu con 87,000 espectadores.', 
+                time: 'hace 2h', 
+                category: 'Deportes',
+                source: 'ESP',
+                sourceName: 'ESPN',
+                premium: false
+            },
+            { 
+                emoji: '🏀', 
+                title: 'NBA: Lakers avanzan a semifinales', 
+                desc: 'LeBron James marca 35 puntos en victoria decisiva contra Warriors. El equipo de Los Ángeles da el siguiente paso.', 
+                time: 'hace 4h', 
+                category: 'Deportes',
+                source: 'NBA',
+                sourceName: 'NBA.com',
+                premium: true
+            },
+            { 
+                emoji: '🎾', 
+                title: 'Alcaraz gana torneo de Wimbledon', 
+                desc: 'El tenista español conquista su segundo Grand Slam derrotando al campeón defensor. Una actuación impresionante del murciano.', 
+                time: 'hace 6h', 
+                category: 'Deportes',
+                source: 'WTA',
+                sourceName: 'Wimbledon',
+                premium: false
+            },
+        ],
+        politica: [
+            { 
+                emoji: '🏛️', 
+                title: 'Aprobado nuevo proyecto de ley ambiental', 
+                desc: 'El congreso vota a favor de medidas de sustentabilidad con amplia mayoría. Un paso importante en la lucha climática global.', 
+                time: 'hace 3h', 
+                category: 'Política',
+                source: 'GOV',
+                sourceName: 'Gobierno',
+                premium: false
+            },
+            { 
+                emoji: '🗳️', 
+                title: 'Encuestas muestran cambio en preferencias', 
+                desc: 'Nuevos sondeos revelan movimiento significativo en intención de voto. Análisis detallado de especialistas políticos.', 
+                time: 'hace 5h', 
+                category: 'Política',
+                source: 'POL',
+                sourceName: 'Politica.com',
+                premium: true
+            },
+            { 
+                emoji: '⚖️', 
+                title: 'Corte suprema dicta fallo histórico', 
+                desc: 'Resolución sobre derechos fundamentales establece precedente legal. Expertos analizan los alcances de esta sentencia.', 
+                time: 'hace 8h', 
+                category: 'Política',
+                source: 'JUS',
+                sourceName: 'Justicia',
+                premium: false
+            },
+        ],
+        tecnologia: [
+            { 
+                emoji: '🤖', 
+                title: 'IA generativa revoluciona diseño web', 
+                desc: 'Nuevas herramientas permiten crear interfaces en minutos usando inteligencia artificial. La industria del diseño se transforma.', 
+                time: 'hace 1h', 
+                category: 'Tecnología',
+                source: 'TEC',
+                sourceName: 'TechNews',
+                premium: true
+            },
+            { 
+                emoji: '💾', 
+                title: 'Nuevo chip de computadora 50% más rápido', 
+                desc: 'Última generación de procesadores rompe récords de rendimiento. Rendimiento sin precedentes en la computación moderna.', 
+                time: 'hace 3h', 
+                category: 'Tecnología',
+                source: 'HW',
+                sourceName: 'Hardware.net',
+                premium: false
+            },
+            { 
+                emoji: '🌐', 
+                title: 'Web 3.0 gana adopción en empresas', 
+                desc: 'Blockchain y descentralización avanzan en aplicaciones empresariales a nivel global. El futuro de internet se define.', 
+                time: 'hace 7h', 
+                category: 'Tecnología',
+                source: 'WEB',
+                sourceName: 'WebFuture',
+                premium: false
+            },
+        ],
+        salud: [
+            { 
+                emoji: '💊', 
+                title: 'Nuevo tratamiento para diabetes aprobado', 
+                desc: 'Medicamento revolucionario muestra resultados positivos en ensayos clínicos. Millones podrían beneficiarse en el mundo.', 
+                time: 'hace 2h', 
+                category: 'Salud',
+                source: 'MED',
+                sourceName: 'Medicina.org',
+                premium: false
+            },
+            { 
+                emoji: '🧬', 
+                title: 'Avance en terapia génica personalizada', 
+                desc: 'Científicos logran resultados prometedores en tratamientos personalizados. La medicina personalizada avanza a pasos agigantados.', 
+                time: 'hace 4h', 
+                category: 'Salud',
+                source: 'BIO',
+                sourceName: 'BioGenesis',
+                premium: true
+            },
+            { 
+                emoji: '🏃', 
+                title: 'Ejercicio reduce riesgo de enfermedades', 
+                desc: '30 minutos diarios de actividad previene múltiples patologías. Estudio de Harvard confirma importancia del movimiento.', 
+                time: 'hace 6h', 
+                category: 'Salud',
+                source: 'RES',
+                sourceName: 'Research.edu',
+                premium: false
+            },
+        ]
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ELEMENTOS DEL DOM
+    // ═══════════════════════════════════════════════════════════════════════════
+    const appContainer = document.getElementById('appContainer');
+    const contentArea = document.getElementById('contentArea');
+    const newsContainer = document.getElementById('newsContainer');
+    const refreshTrigger = document.getElementById('refreshTrigger');
+    const refreshIcon = document.getElementById('refreshIcon');
+    const refreshText = document.getElementById('refreshText');
+    const snackbar = document.getElementById('snackbar');
+    const snackbarText = document.getElementById('snackbarText');
+    const snackbarAction = document.getElementById('snackbarAction');
+    const swipeHint = document.getElementById('swipeHint');
+    const featuredSection = document.getElementById('featuredSection');
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ESTADO DE LA APLICACIÓN
+    // ═══════════════════════════════════════════════════════════════════════════
+    let currentCategory = 'all';
+    let isRefreshing = false;
+    let touchStartY = 0;
+    let touchStartX = 0;
+    let isLoading = false;
+    let lastArchivedNews = null;
+    let showSwipeHint = true;
+    let snackbarTimeout = null;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GESTO A: PULL-TO-REFRESH (Deslizar hacia abajo)
+    // ═══════════════════════════════════════════════════════════════════════════
+    contentArea.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+
+    contentArea.addEventListener('touchmove', (e) => {
+        if (isRefreshing || isLoading) return;
+
+        const currentY = e.touches[0].clientY;
+        const diffY = currentY - touchStartY;
+        const scrollTop = contentArea.scrollTop;
+
+        if (scrollTop === 0 && diffY > 0) {
+            e.preventDefault();
+            const pullDistance = Math.min(diffY, 100);
+            refreshTrigger.style.marginTop = pullDistance + 'px';
+
+            if (pullDistance > 60) {
+                refreshText.textContent = '⬇ Suelta para actualizar';
+                refreshIcon.style.opacity = '1';
+            } else {
+                refreshText.textContent = 'Desliza hacia abajo para actualizar';
+                refreshIcon.style.opacity = '0.6';
+            }
+        }
+    });
+
+    contentArea.addEventListener('touchend', (e) => {
+        if (isRefreshing || isLoading) return;
+
+        const pullDistance = parseInt(refreshTrigger.style.marginTop) || 0;
+        refreshTrigger.style.marginTop = '0px';
+
+        if (pullDistance > 60) {
+            executeRefresh();
+        }
+    }, { passive: true });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GESTO B: SWIPE LEFT/RIGHT (Navegación entre categorías)
+    // ═══════════════════════════════════════════════════════════════════════════
+    let swipeStartX = 0;
+    contentArea.addEventListener('touchstart', (e) => {
+        swipeStartX = e.touches[0].clientX;
+    }, { passive: true });
+
+    contentArea.addEventListener('touchend', (e) => {
+        const swipeEndX = e.changedTouches[0].clientX;
+        const diff = swipeStartX - swipeEndX;
+        const categories = ['all', 'deportes', 'politica', 'tecnologia', 'salud'];
+        const currentIndex = categories.indexOf(currentCategory);
+
+        if (diff > 50 && currentIndex < categories.length - 1) {
+            switchCategory(categories[currentIndex + 1]);
+        } else if (diff < -50 && currentIndex > 0) {
+            switchCategory(categories[currentIndex - 1]);
+        }
+    }, { passive: true });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CAMBIAR CATEGORÍA CON ANIMACIÓN
+    // ═══════════════════════════════════════════════════════════════════════════
+    function switchCategory(category) {
+        if (category === currentCategory) return;
+
+        const categories = ['all', 'deportes', 'politica', 'tecnologia', 'salud'];
+        const oldIndex = categories.indexOf(currentCategory);
+        const newIndex = categories.indexOf(category);
+
+        const direction = newIndex > oldIndex ? 1 : -1;
+        newsContainer.style.transform = `translateX(${direction * 100}%)`;
+
+        setTimeout(() => {
+            currentCategory = category;
+            showSwipeHint = true;
+            renderNews();
+
+            newsContainer.style.transition = 'none';
+            newsContainer.style.transform = `translateX(${-direction * 100}%)`;
+
+            setTimeout(() => {
+                newsContainer.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                newsContainer.style.transform = 'translateX(0)';
+            }, 10);
+        }, 200);
+
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.classList.remove('active');
+            tab.setAttribute('aria-selected', 'false');
+            if (tab.dataset.category === category) {
+                tab.classList.add('active');
+                tab.setAttribute('aria-selected', 'true');
+            }
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FEEDBACK A: SKELETON SCREENS
+    // ═══════════════════════════════════════════════════════════════════════════
+    function showSkeleton() {
+        isLoading = true;
+        contentArea.style.pointerEvents = 'none';
+        let skeleton = '';
+
+        for (let i = 0; i < 3; i++) {
+            skeleton += `
+                <div class="skeleton-item">
+                    <div class="skeleton-image"></div>
+                    <div class="skeleton-title"></div>
+                    <div class="skeleton-text" style="width: 90%;"></div>
+                    <div class="skeleton-text" style="width: 70%;"></div>
+                </div>
+            `;
+        }
+
+        newsContainer.innerHTML = `<div class="news-section"><div class="skeleton-container">${skeleton}</div></div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EJECUTAR REFRESCO
+    // ═══════════════════════════════════════════════════════════════════════════
+    function executeRefresh() {
+        isRefreshing = true;
+        refreshIcon.classList.add('rotating');
+        refreshText.textContent = '⟳ Actualizando...';
+
+        showSkeleton();
+
+        setTimeout(() => {
+            isRefreshing = false;
+            refreshIcon.classList.remove('rotating');
+            refreshText.textContent = 'Desliza hacia abajo para actualizar';
+            renderNews();
+            contentArea.style.pointerEvents = 'auto';
+
+            showSnackbar('✓ Contenido actualizado correctamente', false);
+        }, 2000);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // RENDERIZAR NOTICIAS
+    // ═══════════════════════════════════════════════════════════════════════════
+    function renderNews() {
+        let html = '<div class="news-section">';
+
+        const newsList = currentCategory === 'all'
+            ? [...newsData.deportes, ...newsData.politica, ...newsData.tecnologia, ...newsData.salud]
+            : newsData[currentCategory];
+
+        // Renderizar noticia destacada
+        if (currentCategory === 'all' && newsList.length > 0) {
+            const featured = newsList[0];
+            featuredSection.innerHTML = `
+                <div class="featured-card">
+                    <div class="featured-badge">🔥 Trending</div>
+                    <h2>${featured.title}</h2>
+                    <p>${featured.desc}</p>
+                    <div class="featured-meta">
+                        <div class="featured-source">
+                            <div class="featured-avatar">${featured.source}</div>
+                            <span class="source-name">${featured.sourceName}</span>
+                        </div>
+                        <span>${featured.time}</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            featuredSection.innerHTML = '';
+        }
+
+        newsList.forEach((news, index) => {
+            html += `
+                <div class="news-item" data-index="${index}" onclick="viewNews(this)">
+                    <div class="news-image">${news.emoji}</div>
+                    <div class="news-content">
+                        <div class="news-header">
+                            <div class="news-category">${news.category}</div>
+                            ${news.premium ? '<div class="news-badge">Premium</div>' : ''}
+                        </div>
+                        <h3 class="news-title">${news.title}</h3>
+                        <p class="news-desc">${news.desc}</p>
+                        <div class="news-footer">
+                            <div class="news-meta">
+                                <div class="source-avatar">${news.source}</div>
+                                <span class="source-name">${news.sourceName}</span>
+                                <span>${news.time}</span>
+                            </div>
+                            <div class="news-actions">
+                                <button class="action-btn" onclick="event.stopPropagation(); saveNews(event, '${news.title}')" aria-label="Guardar noticia" title="Guardar">💾</button>
+                                <button class="action-btn" onclick="event.stopPropagation(); shareNews('${news.title}')" aria-label="Compartir noticia" title="Compartir">↗️</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        newsContainer.innerHTML = html;
+        newsContainer.style.transform = 'translateX(0)';
+
+        if (newsList.length > 2) {
+            swipeHint.classList.remove('show');
+        } else if (showSwipeHint) {
+            swipeHint.classList.add('show');
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FEEDBACK B: SNACKBAR CON ACCIÓN "DESHACER"
+    // ═══════════════════════════════════════════════════════════════════════════
+    function saveNews(event, title) {
+        lastArchivedNews = title;
+        
+        // Feedback táctil
+        if (navigator.vibrate) {
+            navigator.vibrate([10, 5, 10]);
+        }
+
+        // Animación visual
+        const btn = event.target;
+        btn.style.animation = 'none';
+        setTimeout(() => {
+            btn.style.animation = 'success-checkmark 0.6s ease-out';
+        }, 10);
+
+        showSnackbar(`✓ Noticia guardada: "${title.substring(0, 30)}..."`, true);
+    }
+
+    function shareNews(title) {
+        if (navigator.vibrate) {
+            navigator.vibrate([5, 5, 5]);
+        }
+        showSnackbar(`📤 Compartiendo: "${title.substring(0, 30)}..."`, false);
+    }
+
+    function viewNews(element) {
+        if (navigator.vibrate) {
+            navigator.vibrate(5);
+        }
+        element.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+            element.style.transform = 'scale(1)';
+        }, 200);
+        showSnackbar('👁️ Abriendo noticia...', false);
+    }
+
+    function showSnackbar(message, showUndo = false) {
+        if (snackbarTimeout) {
+            clearTimeout(snackbarTimeout);
+        }
+
+        snackbarText.textContent = message;
+
+        if (showUndo) {
+            snackbarAction.style.display = 'inline-block';
+            snackbarAction.onclick = () => {
+                lastArchivedNews = null;
+                snackbar.classList.remove('show');
+                showSnackbar('✓ Acción deshecha', false);
+            };
+        } else {
+            snackbarAction.style.display = 'none';
+        }
+
+        snackbar.classList.add('show');
+
+        snackbarTimeout = setTimeout(() => {
+            snackbar.classList.remove('show');
+        }, 3500);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // KEYBOARD NAVIGATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    document.addEventListener('keydown', (e) => {
+        const categories = ['all', 'deportes', 'politica', 'tecnologia', 'salud'];
+        const currentIndex = categories.indexOf(currentCategory);
+
+        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+            switchCategory(categories[currentIndex - 1]);
+        } else if (e.key === 'ArrowRight' && currentIndex < categories.length - 1) {
+            switchCategory(categories[currentIndex + 1]);
+        }
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EVENT LISTENERS PARA CATEGORÍAS
+    // ═══════════════════════════════════════════════════════════════════════════
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            switchCategory(tab.dataset.category);
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INICIALIZAR
+    // ═══════════════════════════════════════════════════════════════════════════
+    renderNews();
+
+    setTimeout(() => {
+        if (showSwipeHint) {
+            swipeHint.classList.add('show');
+        }
+    }, 2000);
+</script>
+</body>
+</html>
